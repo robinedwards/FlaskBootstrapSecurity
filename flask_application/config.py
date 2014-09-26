@@ -1,6 +1,5 @@
 import logging
 import os
-from pymongo.uri_parser import parse_uri
 
 
 class Config(object):
@@ -17,10 +16,7 @@ class Config(object):
 
         self.SYS_ADMINS = ['foo@example.com']
 
-        # Mongodb support
-        self.MONGODB_SETTINGS = self.mongo_from_uri(
-            'mongodb://localhost:27017/testing'
-        )
+        self.SQLALCHEMY_DATABASE_URI = 'sqlite:///../database.db'
 
         # Configured for Gmail
         self.DEFAULT_MAIL_SENDER = 'Admin < username@example.com >'
@@ -47,18 +43,6 @@ class Config(object):
         # CACHE
         self.CACHE_TYPE = 'simple'
 
-    @staticmethod
-    def mongo_from_uri(uri):
-        config = parse_uri(uri)
-        conn_settings = {
-            'db': config['database'],
-            'username': config['username'],
-            'password': config['password'],
-            'host': config['nodelist'][0][0],
-            'port': config['nodelist'][0][1]
-        }
-        return conn_settings
-
 
 class ProductionConfig(Config):
     def __init__(self):
@@ -69,13 +53,13 @@ class ProductionConfig(Config):
         self.LOG_LEVEL = logging.INFO
         self.SERVER_NAME = 'example.com'
 
+        self.SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+
         self.MAIL_SERVER = 'smtp.mandrillapp.com'
         self.MAIL_PORT = 465
         self.MAIL_USE_SSL = True
         self.MAIL_USERNAME = os.getenv('MANDRILL_USERNAME')
         self.MAIL_PASSWORD = os.getenv('MANDRILL_APIKEY')
-
-        self.MONGODB_SETTINGS = self.mongo_from_uri(os.getenv('MONGOHQ_URL'))
 
 
 class TestConfig(Config):

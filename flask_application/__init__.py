@@ -1,9 +1,16 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import logging
 
 from flask import Flask
+from flask.ext.assets import Environment
+from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.mail import Mail
+from flask.ext.cache import Cache
+from flask.ext.security import Security, SQLAlchemyUserDatastore
+from flask_bootstrap import Bootstrap
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 FLASK_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -18,7 +25,6 @@ app.config.from_object('flask_application.config.app_config')
 app.logger.info("Config: %s" % app.config['ENVIRONMENT'])
 
 #  Logging
-import logging
 logging.basicConfig(
     level=app.config['LOG_LEVEL'],
     format='%(asctime)s %(levelname)s: %(message)s '
@@ -53,11 +59,9 @@ else:
     app.logger.info("Emailing on error is DISABLED")
 
 # Bootstrap
-from flask_bootstrap import Bootstrap
 Bootstrap(app)
 
 # Assets
-from flask.ext.assets import Environment
 assets = Environment(app)
 # Ensure output directory exists
 assets_output_dir = os.path.join(FLASK_APP_DIR, '..', 'static', 'gen')
@@ -65,29 +69,25 @@ if not os.path.exists(assets_output_dir):
     os.mkdir(assets_output_dir)
 
 # Email
-from flask.ext.mail import Mail
 mail = Mail(app)
 
 # Memcache
-from flask.ext.cache import Cache
 app.cache = Cache(app)
 
 # Business Logic
 # http://flask.pocoo.org/docs/patterns/packages/
 # http://flask.pocoo.org/docs/blueprints/
+
 from flask_application.controllers.frontend import frontend
 app.register_blueprint(frontend)
 
-# MongoEngine
-from flask.ext.mongoengine import MongoEngine
-app.db = MongoEngine(app)
+app.db = SQLAlchemy(app)
 
-from flask.ext.security import Security, MongoEngineUserDatastore
 from flask_application.models import User, Role
+user_datastore = SQLAlchemyUserDatastore(app.db, User, Role)
 
 # Setup Flask-Security
-user_datastore = MongoEngineUserDatastore(app.db, User, Role)
-app.security = Security(app, user_datastore)
+security = Security(app, user_datastore)
 
 from flask_application.controllers.admin import admin
 app.register_blueprint(admin)
